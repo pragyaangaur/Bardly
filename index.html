@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bardly — a URL expander</title>
+<meta name="description" content="The inverse of a URL shortener. Paste a link, receive a longer one bearing a line of Shakespeare.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <h1>Bardly</h1>
+    <p class="rubric">The inverse of a URL shortener.<br>Paste a link, receive a longer one.</p>
+  </header>
+
+  <main>
+    <form id="form" novalidate>
+      <label for="target">The URL you would have shortened</label>
+      <input id="target" name="target" type="text" inputmode="url" autocomplete="url"
+             spellcheck="false" maxlength="2048" placeholder="reddit.com">
+      <div class="actions">
+        <button type="submit">Expand</button>
+        <button type="button" class="quiet" id="reroll" hidden>Another quote</button>
+      </div>
+      <p class="error" id="error" role="alert"></p>
+    </form>
+
+    <section class="result" id="result" hidden aria-live="polite">
+      <p class="field-note">Your expanded link</p>
+      <a class="link-out" id="link" href="#"></a>
+      <div class="actions">
+        <button type="button" id="copy">Copy</button>
+      </div>
+      <blockquote>
+        <p id="quote-text"></p>
+        <cite class="attribution" id="quote-source"></cite>
+      </blockquote>
+    </section>
+  </main>
+
+  <p class="colophon">
+    Nothing is stored. The destination travels inside the link itself,
+    in plain sight after the <code>#</code>.
+  </p>
+
+</div>
+
+<script src="quotes.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var MAX_LEN = 2048;
+  var BLOCKED = ["javascript:", "data:", "file:", "vbscript:"];
+
+  var form     = document.getElementById("form");
+  var input    = document.getElementById("target");
+  var errorEl  = document.getElementById("error");
+  var result   = document.getElementById("result");
+  var linkEl   = document.getElementById("link");
+  var quoteEl  = document.getElementById("quote-text");
+  var sourceEl = document.getElementById("quote-source");
+  var copyBtn  = document.getElementById("copy");
+  var rerollBtn = document.getElementById("reroll");
+
+  // The last successfully validated target, kept so "Another quote" can
+  // re-mint a link without re-reading (and re-validating) the input.
+  var currentTarget = null;
+  var currentQuote  = null;
+
+  /* Directory this page is served from, with a trailing slash.
+   * On GitHub Pages that is "/<repo>/"; on a user/org site it is "/". */
+  function basePath() {
+    return location.pathname.replace(/[^/]*$/, "");
+  }
+
+  /* Normalize, then accept only http(s). Returns {url} or {error}. */
+  function validate(raw) {
+    var value = String(raw == null ? "" : raw).trim();
+
+    if (!value) return { error: "Enter a URL to expand." };
+    if (value.length > MAX_LEN) {
+      return { error: "That URL is longer than " + MAX_LEN + " characters." };
+    }
+
+    // Check dangerous schemes on the raw input, before any normalization,
+    // ignoring whitespace tricks like "java\nscript:".
+    var squashed = value.replace(/\s+/g, "").toLowerCase();
+    for (var i = 0; i < BLOCKED.length; i++) {
+      if (squashed.indexOf(BLOCKED[i]) === 0) {
+        return { error: "Links of type " + BLOCKED[i] + " are not accepted." };
+      }
+    }
+
+    // Scheme-less input becomes https. "//host" is protocol-relative.
+    var normalized = value;
+    if (/^\/\//.test(normalized)) {
+      normalized = "https:" + normalized;
+    } else if (!/^[a-z][a-z0-9+.-]*:/i.test(normalized)) {
+      normalized = "https://" + normalized;
+    }
+
+    var url;
+    try {
+      url = new URL(normalized);
+    } catch (e) {
+      return { error: "That does not look like a URL." };
+    }
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return { error: "Only http and https links can be expanded." };
+    }
+    if (!url.hostname || url.hostname.indexOf(".") === -1) {
+      // Rules out "https://reddit" and other hostless leftovers.
+      return { error: "That URL is missing a valid hostname." };
+    }
+    if (url.origin === location.origin) {
+      return { error: "That points back at Bardly. Expanding it would make a loop." };
+    }
+
+    return { url: url.href };
+  }
+
+  function pickQuote(avoid) {
+    if (!QUOTES.length) return null;
+    var choice = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    // One retry is enough to make "Another quote" feel responsive without
+    // risking a long loop on a small corpus.
+    if (avoid && choice.text === avoid.text && QUOTES.length > 1) {
+      choice = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    }
+    return choice;
+  }
+
+  function render(target, quote) {
+    var expanded = location.origin + basePath() +
+                   slugify(quote.text) + "#" + encodeURIComponent(target);
+
+    linkEl.textContent = expanded;
+    linkEl.setAttribute("href", expanded);
+    quoteEl.textContent = "“" + quote.text + "”";
+    sourceEl.textContent = quote.source;
+    result.hidden = false;
+    rerollBtn.hidden = false;
+    copyBtn.textContent = "Copy";
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    errorEl.textContent = "";
+
+    var checked = validate(input.value);
+    if (checked.error) {
+      result.hidden = true;
+      rerollBtn.hidden = true;
+      currentTarget = null;
+      errorEl.textContent = checked.error;
+      return;
+    }
+
+    currentTarget = checked.url;
+    currentQuote = pickQuote(null);
+    render(currentTarget, currentQuote);
+  });
+
+  rerollBtn.addEventListener("click", function () {
+    if (!currentTarget) return;
+    currentQuote = pickQuote(currentQuote);
+    render(currentTarget, currentQuote);
+  });
+
+  copyBtn.addEventListener("click", function () {
+    var text = linkEl.textContent;
+    if (!text) return;
+
+    function done() { copyBtn.textContent = "Copied"; }
+    function failed() { copyBtn.textContent = "Press ⌘C"; }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () {
+        legacyCopy(text) ? done() : failed();
+      });
+    } else {
+      legacyCopy(text) ? done() : failed();
+    }
+  });
+
+  // execCommand fallback for browsers without the async clipboard API,
+  // and for pages not served over https.
+  function legacyCopy(text) {
+    var scratch = document.createElement("textarea");
+    scratch.value = text;
+    scratch.setAttribute("readonly", "");
+    scratch.style.position = "fixed";
+    scratch.style.opacity = "0";
+    document.body.appendChild(scratch);
+    scratch.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(scratch);
+    return ok;
+  }
+
+  // A generated link points at a 404 route, so let it navigate normally
+  // rather than being swallowed by the form.
+  linkEl.addEventListener("click", function (event) {
+    if (!linkEl.getAttribute("href") || linkEl.getAttribute("href") === "#") {
+      event.preventDefault();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

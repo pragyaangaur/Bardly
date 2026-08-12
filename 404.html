@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bardly — where this link goes</title>
+<meta name="robots" content="noindex">
+<script>
+/* This page is served for ARBITRARY paths, so relative URLs like "style.css"
+ * would otherwise resolve against /<repo>/<slug>/ and miss. Pin a <base> at
+ * the directory that holds the site before any relative link is parsed.
+ *
+ * The path is encoded and quotes are stripped: location.pathname is attacker
+ * -supplied, and this string lands in markup. */
+(function () {
+  var dir = location.pathname.replace(/\/+$/, "").replace(/[^/]*$/, "");
+  if (!dir) dir = "/";
+  var safe = encodeURI(dir).replace(/["'<>]/g, "");
+  document.write('<base href="' + safe + '">');
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <h1><a href="./">Bardly</a></h1>
+    <p class="rubric" id="rubric">You followed an expanded link.</p>
+  </header>
+
+  <main>
+    <blockquote id="quote-block" hidden>
+      <p id="quote-text"></p>
+      <cite class="attribution" id="quote-source"></cite>
+    </blockquote>
+
+    <section class="destination" id="destination" hidden>
+      <p class="field-note">This link will take you to</p>
+      <p class="host" id="host"></p>
+      <span class="full-url" id="full-url"></span>
+    </section>
+
+    <p id="malformed" hidden>
+      This link is malformed — it carries no destination after the
+      <code>#</code>, or the destination is not a valid web address.
+      Nothing was stored anywhere, so there is nothing to look up.
+      You can <a href="./">make a new link</a>.
+    </p>
+
+    <a class="continue" id="continue" hidden rel="noopener noreferrer nofollow">Continue</a>
+  </main>
+
+  <p class="colophon">
+    Bardly never redirects you on its own. Nothing is stored; the destination
+    above was read from the link you clicked.
+  </p>
+
+</div>
+
+<script src="quotes.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var quoteBlock = document.getElementById("quote-block");
+  var quoteEl    = document.getElementById("quote-text");
+  var sourceEl   = document.getElementById("quote-source");
+  var destEl     = document.getElementById("destination");
+  var hostEl     = document.getElementById("host");
+  var fullEl     = document.getElementById("full-url");
+  var malformed  = document.getElementById("malformed");
+  var continueEl = document.getElementById("continue");
+  var rubric     = document.getElementById("rubric");
+
+  /* ---- the quote ---- */
+
+  // Last non-empty path segment, tolerant of a trailing slash.
+  var segments = location.pathname.split("/").filter(function (s) { return s; });
+  var slug = segments.length ? segments[segments.length - 1] : "";
+
+  // Match against the corpus by comparing slugified text, so we can show the
+  // real attribution rather than a guess reconstructed from the slug.
+  var match = null;
+  for (var i = 0; i < QUOTES.length; i++) {
+    if (slugify(QUOTES[i].text) === slug) { match = QUOTES[i]; break; }
+  }
+
+  if (match) {
+    quoteEl.textContent = "“" + match.text + "”";
+    sourceEl.textContent = match.source;
+    quoteBlock.hidden = false;
+  } else if (slug) {
+    // Unknown slug: un-slugify for display and say nothing about provenance.
+    var words = decodeURIComponent(slug).replace(/-+/g, " ").trim();
+    if (words) {
+      quoteEl.textContent = "“" + words + "”";
+      sourceEl.textContent = "Source unknown";
+      quoteBlock.hidden = false;
+    }
+  }
+
+  /* ---- the destination ---- */
+
+  function fail() {
+    malformed.hidden = false;
+    rubric.textContent = "This link is malformed.";
+  }
+
+  var raw = location.hash ? location.hash.slice(1) : "";
+  if (!raw) { fail(); return; }
+
+  var decoded;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch (e) {
+    fail();                 // malformed percent-encoding
+    return;
+  }
+
+  var url;
+  try {
+    url = new URL(decoded);
+  } catch (e) {
+    fail();
+    return;
+  }
+
+  // Re-validate on the way out. The hash is attacker-controlled, so this is
+  // the check that keeps javascript:/data: out of the Continue href.
+  if (url.protocol !== "http:" && url.protocol !== "https:") { fail(); return; }
+  if (url.origin === location.origin) { fail(); return; }
+
+  hostEl.textContent = url.hostname;
+  fullEl.textContent = url.href;
+  destEl.hidden = false;
+
+  continueEl.setAttribute("href", url.href);
+  continueEl.textContent = "Continue to " + url.hostname;
+  continueEl.hidden = false;
+
+  rubric.textContent = "You followed an expanded link. Check where it goes before continuing.";
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,244 @@
+/* Bardly -- quarto / first folio.
+ * Warm paper, dark ink, one serif face, no gradients, no shadows, no radii. */
+
+:root {
+  --paper:      #f4f1ea;
+  --ink:        #1c1a17;
+  --ink-soft:   #4a453e;
+  --ink-faint:  #7a7268;
+  --rule:       #c9c1b2;
+  --rule-dark:  #1c1a17;
+  --alarm:      #8a2b20;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  padding: 3rem 1.5rem 5rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "EB Garamond", "Crimson Text", Georgia, "Times New Roman", serif;
+  font-size: 1.125rem;
+  line-height: 1.7;
+}
+
+.sheet {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+/* ---- masthead ---- */
+
+.masthead {
+  text-align: center;
+  border-bottom: 1px solid var(--rule-dark);
+  padding-bottom: 1.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.masthead h1 {
+  margin: 0;
+  font-size: 3.25rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.masthead h1 a { color: inherit; text-decoration: none; }
+
+.rubric {
+  margin: 0.75rem 0 0;
+  font-style: italic;
+  color: var(--ink-soft);
+  font-size: 1.0625rem;
+}
+
+/* ---- form ---- */
+
+label {
+  display: block;
+  font-variant: small-caps;
+  letter-spacing: 0.09em;
+  font-size: 1rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.5rem;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  font-family: inherit;
+  font-size: 1.0625rem;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--rule-dark);
+  border-radius: 0;
+  appearance: none;
+}
+
+input[type="text"]:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+button {
+  font-family: inherit;
+  font-size: 1rem;
+  font-variant: small-caps;
+  letter-spacing: 0.09em;
+  padding: 0.55rem 1.4rem;
+  color: var(--paper);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+button:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
+button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+button.quiet {
+  color: var(--ink);
+  background: transparent;
+}
+
+button.quiet:hover { background: rgba(28, 26, 23, 0.07); border-color: var(--ink); }
+
+/* ---- messages ---- */
+
+.error {
+  margin-top: 1rem;
+  color: var(--alarm);
+  font-style: italic;
+}
+
+.error:empty { display: none; }
+
+/* ---- result ---- */
+
+.result {
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--rule-dark);
+  padding-top: 1.75rem;
+}
+
+.result[hidden] { display: none; }
+
+.field-note {
+  font-variant: small-caps;
+  letter-spacing: 0.09em;
+  font-size: 0.9375rem;
+  color: var(--ink-faint);
+  margin: 0 0 0.5rem;
+}
+
+.link-out {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink);
+  word-break: break-all;      /* long URLs must never widen the page */
+  overflow-wrap: anywhere;
+  border: 1px solid var(--rule);
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* ---- the quote itself ---- */
+
+blockquote {
+  margin: 2rem 0 0;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--rule-dark);
+  font-size: 1.375rem;
+  font-style: italic;
+  line-height: 1.55;
+}
+
+blockquote p { margin: 0; }
+
+.attribution {
+  display: block;
+  margin-top: 0.6rem;
+  font-style: normal;
+  font-size: 1rem;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+/* ---- interstitial (404.html) ---- */
+
+.destination {
+  margin: 2rem 0 0;
+  border: 1px solid var(--rule-dark);
+  padding: 1.25rem;
+}
+
+.host {
+  font-size: 1.5rem;
+  line-height: 1.3;
+  margin: 0.35rem 0 0;
+  word-break: break-all;
+}
+
+.full-url {
+  display: block;
+  margin-top: 0.9rem;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.continue {
+  display: inline-block;
+  margin-top: 1.75rem;
+  font-size: 1.125rem;
+  font-variant: small-caps;
+  letter-spacing: 0.09em;
+  padding: 0.6rem 1.6rem;
+  color: var(--paper);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  text-decoration: none;
+}
+
+.continue:hover { background: var(--ink-soft); }
+.continue:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ---- colophon ---- */
+
+.colophon {
+  margin-top: 4rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9375rem;
+  font-style: italic;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+.colophon a { color: var(--ink-soft); }
+
+/* ---- narrow screens, down to 360px ---- */
+
+@media (max-width: 30rem) {
+  body { padding: 2rem 1.1rem 3.5rem; font-size: 1.0625rem; }
+  .masthead h1 { font-size: 2.25rem; letter-spacing: 0.1em; }
+  blockquote { font-size: 1.1875rem; padding-left: 1rem; }
+  .host { font-size: 1.25rem; }
+  .actions { gap: 0.5rem; }
+  .actions button { flex: 1 1 auto; }
+}
